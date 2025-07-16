@@ -1,0 +1,831 @@
+openapi: 3.0.0
+info:
+  title: TrentoSicura APIs 
+  version: 1.2.0
+  description: API for managing users, organizations, and reports.
+servers:
+  - url: http://localhost:3000/api
+    description: Local development server
+
+tags:
+  - name: Users
+    description: User management operations
+  - name: Organizations
+    description: Organization management operations
+  - name: Reports
+    description: Report management operations
+
+paths:
+  # User Routes
+  /users:
+    post:
+      tags:
+        - Users
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, username, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "user@example.com"
+                username:
+                  type: string
+                  example: "testuser"
+                password:
+                  type: string
+                  minLength: 6
+                  pattern: "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[a-zA-Z\\d]{6,}$"
+                  example: "Password1"
+                  description: "Must contain at least one uppercase letter, one lowercase letter, and one number"
+      responses:
+        201:
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User registered successfully"
+        400:
+          description: User already exists or invalid password
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User already exists"
+        500:
+          description: Server error
+
+  /users/session:
+    post:
+      tags:
+        - Users
+      summary: Login as a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "user@example.com"
+                password:
+                  type: string
+                  example: "Password1"
+      responses:
+        200:
+          description: Logged in successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Logged in successfully"
+                  user:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                      email:
+                        type: string
+                      username:
+                        type: string
+          headers:
+            Set-Cookie:
+              description: Authentication token
+              schema:
+                type: string
+                example: "token=jwt_token_here; HttpOnly; Secure; SameSite=Strict"
+        400:
+          description: Invalid email or password
+        500:
+          description: Server error
+
+   
+
+
+  /users/{id}:
+    delete:
+      tags:
+        - Users
+      summary: Delete a user
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: User ID (must match logged-in user)
+      responses:
+        200:
+          description: User deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User deleted successfully"
+        403:
+          description: Unauthorized - cannot delete another user's account
+        404:
+          description: User not found
+        500:
+          description: Server error
+
+    put:
+      tags:
+        - Users
+      summary: Edit a user
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: User ID (must match logged-in user)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                username:
+                  type: string
+                password:
+                  type: string
+                  minLength: 6
+                  pattern: "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[a-zA-Z\\d]{6,}$"
+      responses:
+        200:
+          description: User updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User updated successfully"
+                  user:
+                    type: object
+        403:
+          description: Unauthorized - cannot edit another user's account
+        404:
+          description: User not found
+        500:
+          description: Server error
+
+  # Organization Routes
+  /orgs:
+    post:
+      tags:
+        - Organizations
+      summary: Register an organization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, email, password, phone, indirizzo]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "org@example.com"
+                username:
+                  type: string
+                  example: "testorg"
+                password:
+                  type: string
+                  minLength: 6
+                  pattern: "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[a-zA-Z\\d]{6,}$"
+                  example: "Password1"
+                phone:
+                  type: string
+                  example: "1234567890"
+                indirizzo:
+                  type: string
+                  example: "123 Main Street"
+      responses:
+        201:
+          description: Organization registered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User registered successfully"
+        400:
+          description: Organization already exists or invalid password
+        500:
+          description: Server error
+
+    get:
+      tags:
+        - Organizations
+      summary: Get all users (organization access only)
+      security:
+        - cookieAuth: []
+      responses:
+        200:
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        _id:
+                          type: string
+                        email:
+                          type: string
+                        username:
+                          type: string
+                        phone:
+                          type: number
+                        posizione:
+                          type: boolean
+                        segnalazioni:
+                          type: array
+                          items:
+                            type: string
+                        createdAt:
+                          type: string
+                          format: date-time
+                        updatedAt:
+                          type: string
+                          format: date-time
+        403:
+          description: Access denied - organization only
+        500:
+          description: Failed to fetch users
+
+  /orgs/session:
+    post:
+      tags:
+        - Organizations
+      summary: Login an organization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "org@example.com"
+                password:
+                  type: string
+                  example: "Password1"
+      responses:
+        200:
+          description: Logged in successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Logged in successfully"
+                  org:
+                    type: object
+                    properties:
+                      _id:
+                        type: string
+                      email:
+                        type: string
+                      username:
+                        type: string
+                      phone:
+                        type: number
+                      indirizzo:
+                        type: string
+          headers:
+            Set-Cookie:
+              description: Authentication token
+              schema:
+                type: string
+        400:
+          description: Invalid credentials
+        500:
+          description: Server error
+          
+  /orgs/{id}:
+    put:
+      tags:
+        - Organizations
+      summary: Edit an organization
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Organization ID (must match logged-in org)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                username:
+                  type: string
+                password:
+                  type: string
+                  minLength: 6
+                  pattern: "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[a-zA-Z\\d]{6,}$"
+                phone:
+                  type: string
+                indirizzo:
+                  type: string
+                descrizione:
+                  type: string
+      responses:
+        200:
+          description: Organization updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User updated successfully"
+                  organization:
+                    $ref: '#/components/schemas/Organization'
+        403:
+          description: Unauthorized - cannot edit another organization
+        404:
+          description: Organization not found
+        500:
+          description: Server error
+
+    delete:
+      tags:
+        - Organizations
+      summary: Delete an organization
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Organization ID (must match logged-in org)
+      responses:
+        200:
+          description: Organization deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Organization deleted successfully"
+        403:
+          description: Unauthorized - cannot delete another organization
+        404:
+          description: Organization not found
+        500:
+          description: Server error
+
+  /orgs/users/{userId}:
+    delete:
+      tags:
+        - Organizations
+      summary: Delete a user by organization
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+          description: User ID to delete
+      responses:
+        200:
+          description: User deleted successfully (and reports removed)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User deleted successfully"
+        404:
+          description: User not found
+        500:
+          description: Server error
+
+  /orgs/users/{userId}/suspend:
+    post:
+      tags:
+        - Organizations
+      summary: Suspend a user
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+          description: User ID to suspend
+      responses:
+        200:
+          description: User suspended successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User suspended successfully"
+        404:
+          description: User not found
+        500:
+          description: Server error
+
+  /orgs/users/{userId}/reactivate:
+    post:
+      tags:
+        - Organizations
+      summary: Reactivate a suspended user
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+          description: User ID to reactivate
+      responses:
+        200:
+          description: User reactivated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "User reactivated successfully"
+        404:
+          description: User not found
+        500:
+          description: Server error
+
+  # Report Routes
+  /reports:
+    post:
+      tags:
+        - Reports
+      summary: Create a new report
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reportData]
+              properties:
+                reportData:
+                  type: object
+                  required: [title, description]
+                  properties:
+                    title:
+                      type: string
+                      example: "Broken streetlight"
+                    description:
+                      type: string
+                      example: "The streetlight on Main Street is not working"
+                    location:
+                      type: object
+                      properties:
+                        lat:
+                          type: number
+                          example: 46.0748
+                        lng:
+                          type: number
+                          example: 11.1217
+                    photo:
+                      type: string
+                      example: "base64_encoded_image_or_url"
+                    tags:
+                      type: array
+                      items:
+                        type: string
+                      example: ["infrastructure", "lighting"]
+      responses:
+        201:
+          description: Report created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Report created successfully"
+                  report:
+                    $ref: '#/components/schemas/Report'
+        500:
+          description: Server error
+
+    get:
+      tags:
+        - Reports
+      summary: Get all reports
+      responses:
+        200:
+          description: List of reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Report'
+        500:
+          description: Server error
+
+  /reports/mine:
+    get:
+      tags:
+        - Reports
+      summary: Get all reports by current user/org
+      security:
+        - cookieAuth: []
+      responses:
+        200:
+          description: List of user reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Report'
+        404:
+          description: No reports found for this user
+        500:
+          description: Server error
+
+  /reports/{reportId}:
+    get:
+      tags:
+        - Reports
+      summary: Get a single report by ID
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: reportId
+          required: true
+          schema:
+            type: string
+          description: Report ID
+      responses:
+        200:
+          description: Report found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        404:
+          description: Report not found
+        500:
+          description: Server error
+
+    patch:
+      tags:
+        - Reports
+      summary: Update a report
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: reportId
+          required: true
+          schema:
+            type: string
+          description: Report ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reportData:
+                  type: object
+                  properties:
+                    title:
+                      type: string
+                    description:
+                      type: string
+                    location:
+                      type: object
+                      properties:
+                        lat:
+                          type: number
+                        lng:
+                          type: number
+                    photo:
+                      type: string
+                    tags:
+                      type: array
+                      items:
+                        type: string
+      responses:
+        200:
+          description: Report updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Report updated successfully"
+                  report:
+                    $ref: '#/components/schemas/Report'
+        404:
+          description: Report not found
+        500:
+          description: Server error
+
+    delete:
+      tags:
+        - Reports
+      summary: Delete a report
+      security:
+        - cookieAuth: []
+      parameters:
+        - in: path
+          name: reportId
+          required: true
+          schema:
+            type: string
+          description: Report ID
+      responses:
+        200:
+          description: Report deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Report deleted successfully"
+        404:
+          description: Report not found
+        500:
+          description: Server error
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: token
+      description: JWT token stored in HTTP-only cookie
+
+  schemas:
+    Report:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: Report ID
+        title:
+          type: string
+          description: Report title
+        description:
+          type: string
+          description: Report description
+        user:
+          type: string
+          description: User ID who created the report
+        location:
+          type: object
+          properties:
+            lat:
+              type: number
+              description: Latitude
+            lng:
+              type: number
+              description: Longitude
+        photo:
+          type: string
+          description: Photo URL or base64 encoded image
+        tags:
+          type: array
+          items:
+            type: string
+          description: Report tags
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation timestamp
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+
+    User:
+      type: object
+      properties:
+        _id:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        phone:
+          type: number
+        posizione:
+          type: boolean
+        segnalazioni:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Organization:
+      type: object
+      properties:
+        _id:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        phone:
+          type: number
+        indirizzo:
+          type: string
+        segnalazioni:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
