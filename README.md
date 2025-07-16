@@ -58,7 +58,7 @@ API specifications are available in the `api-docs.yaml` file. This file contains
 - Available endpoints
 - Request parameters
 - Response formats
-- Authentication requirements (if any)
+- Authentication requirements
 
 ## Development
 
